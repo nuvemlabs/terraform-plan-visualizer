@@ -3,7 +3,7 @@
 Fast, shell-based Terraform plan visualizer. Parses `terraform plan` text output into a beautiful, self-contained HTML report.
 
 ![Screenshot](https://img.shields.io/badge/output-single%20HTML%20file-7B42BC?style=flat-square)
-![Dependencies](https://img.shields.io/badge/dependencies-bash%20%2B%20awk%20%2B%20python3-blue?style=flat-square)
+![Dependencies](https://img.shields.io/badge/dependencies-bash%20%2B%20awk%20%2B%20grep%20%2B%20python3-blue?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 
 ## Features
@@ -40,14 +40,14 @@ On macOS, the report auto-opens in your default browser.
 
 - `bash`
 - `awk` (BSD or GNU)
+- `grep` (BSD or GNU, with `-oE` support)
 - `python3` (for JSON injection into template)
-- `rg` ([ripgrep](https://github.com/BurntSushi/ripgrep)) - for fast text extraction
 
 ## How It Works
 
 ```
 plan.log ──> extract.sh ──> JSON ──> build-report.sh ──> report.html
-              (awk/rg)              (python3 inject)
+             (awk/grep)             (python3 inject)
 ```
 
 1. **`extract.sh`** - Parses the plan text output in a single `awk` pass. Extracts resource actions, attribute changes, moves, imports, warnings, and summary counts. Outputs structured JSON.
