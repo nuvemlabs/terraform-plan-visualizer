@@ -1,0 +1,5 @@
+*.html
+!template.html
+*.json
+*.log
+.DS_Store
