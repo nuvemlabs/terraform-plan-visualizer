@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # extract.sh - Extract structured JSON from a terraform plan.log
 # Usage: ./extract.sh <plan.log>
-# Uses rg, sed, awk for bulk extraction. No line-by-line bash loops over the file.
+# Uses grep, sed, awk for bulk extraction. No line-by-line bash loops over the file.
 set -euo pipefail
 
 PLAN_FILE="${1:?Usage: extract.sh <plan.log>}"
@@ -22,9 +22,9 @@ WARNINGS_FILE="$TMPDIR_WORK/warnings.json"
 sed 's/\x1b\[[0-9;]*m//g' "$PLAN_FILE" > "$CLEAN_FILE"
 
 # --- Find key line numbers ---
-ACTIONS_LINE=$(rg -n "^Terraform will perform the following actions:" "$CLEAN_FILE" | head -1 | cut -d: -f1)
+ACTIONS_LINE=$(grep -n "^Terraform will perform the following actions:" "$CLEAN_FILE" | head -1 | cut -d: -f1)
 if [[ -z "$ACTIONS_LINE" ]]; then
-  REFRESH_COUNT=$(rg -c "Refreshing state\.\.\." "$CLEAN_FILE" 2>/dev/null || echo "0")
+  REFRESH_COUNT=$(grep -c "Refreshing state\.\.\." "$CLEAN_FILE" 2>/dev/null || echo "0")
   cat <<ENDJSON
 {
   "metadata": {"generated": "$GENERATED", "source": "$FILENAME", "terraform_version": ""},
@@ -37,17 +37,17 @@ ENDJSON
   exit 0
 fi
 
-REFRESH_COUNT=$(head -n "$ACTIONS_LINE" "$CLEAN_FILE" | rg -c "Refreshing state\.\.\." 2>/dev/null || echo "0")
+REFRESH_COUNT=$(head -n "$ACTIONS_LINE" "$CLEAN_FILE" | grep -c "Refreshing state\.\.\." 2>/dev/null || echo "0")
 
 # --- Extract summary line ---
-SUMMARY_LINE=$(rg "^Plan:" "$CLEAN_FILE" | head -1)
-S_IMPORT=$(echo "$SUMMARY_LINE" | rg -o '[0-9]+ to import' | rg -o '[0-9]+' || echo "0")
-S_ADD=$(echo "$SUMMARY_LINE" | rg -o '[0-9]+ to add' | rg -o '[0-9]+' || echo "0")
-S_CHANGE=$(echo "$SUMMARY_LINE" | rg -o '[0-9]+ to change' | rg -o '[0-9]+' || echo "0")
-S_DESTROY=$(echo "$SUMMARY_LINE" | rg -o '[0-9]+ to destroy' | rg -o '[0-9]+' || echo "0")
+SUMMARY_LINE=$(grep "^Plan:" "$CLEAN_FILE" | head -1)
+S_IMPORT=$(echo "$SUMMARY_LINE" | grep -oE '[0-9]+ to import' | grep -oE '[0-9]+' || echo "0")
+S_ADD=$(echo "$SUMMARY_LINE" | grep -oE '[0-9]+ to add' | grep -oE '[0-9]+' || echo "0")
+S_CHANGE=$(echo "$SUMMARY_LINE" | grep -oE '[0-9]+ to change' | grep -oE '[0-9]+' || echo "0")
+S_DESTROY=$(echo "$SUMMARY_LINE" | grep -oE '[0-9]+ to destroy' | grep -oE '[0-9]+' || echo "0")
 
 PLAN_LINE_COUNT=$(wc -l < "$CLEAN_FILE" | tr -d ' ')
-SUMMARY_LINE_NUM=$(rg -n "^Plan:" "$CLEAN_FILE" | head -1 | cut -d: -f1)
+SUMMARY_LINE_NUM=$(grep -n "^Plan:" "$CLEAN_FILE" | head -1 | cut -d: -f1)
 
 # === Single awk pass: extract resources with diffBlock + parsed changes ===
 awk -v actions_start="$ACTIONS_LINE" -v summary_line="${SUMMARY_LINE_NUM:-$PLAN_LINE_COUNT}" '
@@ -458,9 +458,9 @@ END {
 ' "$CLEAN_FILE" > "$WARNINGS_FILE"
 
 # === Count action types from extracted resources ===
-S_MOVE=$(rg -c '"action": "move"' "$RESOURCES_FILE" 2>/dev/null || echo "0")
-S_READ=$(rg -c '"action": "read"' "$RESOURCES_FILE" 2>/dev/null || echo "0")
-S_REPLACE=$(rg -c '"action": "replace"' "$RESOURCES_FILE" 2>/dev/null || echo "0")
+S_MOVE=$(grep -c '"action": "move"' "$RESOURCES_FILE" 2>/dev/null || echo "0")
+S_READ=$(grep -c '"action": "read"' "$RESOURCES_FILE" 2>/dev/null || echo "0")
+S_REPLACE=$(grep -c '"action": "replace"' "$RESOURCES_FILE" 2>/dev/null || echo "0")
 S_TOTAL=$((S_IMPORT + S_ADD + S_CHANGE + S_DESTROY + S_MOVE + S_READ))
 
 # === Assemble final JSON ===
