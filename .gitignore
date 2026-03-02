@@ -2,4 +2,7 @@
 !template.html
 *.json
 *.log
+!tests/fixtures/*.log
 .DS_Store
+__pycache__/
+*.pyc

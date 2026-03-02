@@ -1,0 +1,22 @@
+Terraform will perform the following actions:
+
+  # azurerm_api_management_api_policy.policy will be updated in-place
+  ~ resource "azurerm_api_management_api_policy" "policy" {
+        id     = "/subscriptions/abc123/providers/Microsoft.ApiManagement/service/my-apim/apis/my-api/policies/policy"
+      ~ xml_content = <<-EOT
+          <policies>
+            <inbound>
+              <base />
+              <set-header name="X-Custom" exists-action="override">
+                <value>test-value</value>
+              </set-header>
+            </inbound>
+            <backend>
+              <base />
+            </backend>
+          </policies>
+        EOT
+        # (3 unchanged attributes hidden)
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.

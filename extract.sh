@@ -22,9 +22,9 @@ WARNINGS_FILE="$TMPDIR_WORK/warnings.json"
 sed 's/\x1b\[[0-9;]*m//g' "$PLAN_FILE" > "$CLEAN_FILE"
 
 # --- Find key line numbers ---
-ACTIONS_LINE=$(grep -n "^Terraform will perform the following actions:" "$CLEAN_FILE" | head -1 | cut -d: -f1)
+ACTIONS_LINE=$(grep -n "^Terraform will perform the following actions:" "$CLEAN_FILE" | head -1 | cut -d: -f1 || true)
 if [[ -z "$ACTIONS_LINE" ]]; then
-  REFRESH_COUNT=$(grep -c "Refreshing state\.\.\." "$CLEAN_FILE" 2>/dev/null || echo "0")
+  REFRESH_COUNT=$(grep -c "Refreshing state\.\.\." "$CLEAN_FILE" 2>/dev/null) || REFRESH_COUNT=0
   cat <<ENDJSON
 {
   "metadata": {"generated": "$GENERATED", "source": "$FILENAME", "terraform_version": ""},
@@ -37,7 +37,7 @@ ENDJSON
   exit 0
 fi
 
-REFRESH_COUNT=$(head -n "$ACTIONS_LINE" "$CLEAN_FILE" | grep -c "Refreshing state\.\.\." 2>/dev/null || echo "0")
+REFRESH_COUNT=$(head -n "$ACTIONS_LINE" "$CLEAN_FILE" | grep -c "Refreshing state\.\.\." 2>/dev/null) || REFRESH_COUNT=0
 
 # --- Extract summary line ---
 SUMMARY_LINE=$(grep "^Plan:" "$CLEAN_FILE" | head -1)
@@ -424,11 +424,12 @@ END {
 ' "$CLEAN_FILE" > "$RESOURCES_FILE"
 
 # === Extract warnings ===
-awk -v start="${SUMMARY_LINE_NUM}" '
+awk -v start="${SUMMARY_LINE_NUM:-$PLAN_LINE_COUNT}" '
 function json_escape(s) {
   gsub(/\\/, "\\\\", s)
   gsub(/"/, "\\\"", s)
   gsub(/\t/, "\\t", s)
+  gsub(/\r/, "", s)
   return s
 }
 BEGIN { wc = 0 }
@@ -458,10 +459,11 @@ END {
 ' "$CLEAN_FILE" > "$WARNINGS_FILE"
 
 # === Count action types from extracted resources ===
-S_MOVE=$(grep -c '"action": "move"' "$RESOURCES_FILE" 2>/dev/null || echo "0")
-S_READ=$(grep -c '"action": "read"' "$RESOURCES_FILE" 2>/dev/null || echo "0")
-S_REPLACE=$(grep -c '"action": "replace"' "$RESOURCES_FILE" 2>/dev/null || echo "0")
-S_TOTAL=$((S_IMPORT + S_ADD + S_CHANGE + S_DESTROY + S_MOVE + S_READ))
+S_MOVE=$(grep -c '"action": "move"' "$RESOURCES_FILE" 2>/dev/null) || S_MOVE=0
+S_READ=$(grep -c '"action": "read"' "$RESOURCES_FILE" 2>/dev/null) || S_READ=0
+S_REPLACE=$(grep -c '"action": "replace"' "$RESOURCES_FILE" 2>/dev/null) || S_REPLACE=0
+S_RESOURCE_COUNT=$(grep -c '"address":' "$RESOURCES_FILE" 2>/dev/null) || S_RESOURCE_COUNT=0
+S_TOTAL=$S_RESOURCE_COUNT
 
 # === Assemble final JSON ===
 cat <<ENDJSON

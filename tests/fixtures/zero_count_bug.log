@@ -1,0 +1,30 @@
+azurerm_resource_group.rg1: Refreshing state... [id=/subscriptions/abc123/providers/Microsoft.Network/resourceGroups/rg1]
+
+Terraform will perform the following actions:
+
+  # azurerm_resource_group.rg1 will be updated in-place
+  ~ resource "azurerm_resource_group" "rg1" {
+        id       = "/subscriptions/abc123/providers/Microsoft.Network/resourceGroups/rg1"
+        name     = "rg1"
+      ~ tags     = {
+          + "Managed" = "terraform"
+        }
+        # (2 unchanged attributes hidden)
+    }
+
+  # azurerm_resource_group.rg2 will be created
+  + resource "azurerm_resource_group" "rg2" {
+      + id       = (known after apply)
+      + location = "australiaeast"
+      + name     = "rg2"
+    }
+
+  # azurerm_resource_group.rg3 will be destroyed
+  # (because azurerm_resource_group.rg3 is not in configuration)
+  - resource "azurerm_resource_group" "rg3" {
+      - id       = "/subscriptions/abc123/providers/Microsoft.Network/resourceGroups/rg3" -> null
+      - location = "australiaeast" -> null
+      - name     = "rg3" -> null
+    }
+
+Plan: 1 to add, 1 to change, 1 to destroy.

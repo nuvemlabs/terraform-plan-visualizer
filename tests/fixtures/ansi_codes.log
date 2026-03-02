@@ -1,0 +1,15 @@
+[0m[1mazurerm_resource_group.rg: Refreshing state...[0m [id=/subscriptions/abc123/providers/Microsoft.Network/resourceGroups/rg1]
+
+[0m[1mTerraform will perform the following actions:[0m
+
+  [0m# azurerm_resource_group.rg will be updated in-place[0m
+  [0m[33m~[0m resource "azurerm_resource_group" "rg" {
+        id       = "/subscriptions/abc123/providers/Microsoft.Network/resourceGroups/rg1"
+        name     = "rg1"
+      [33m~[0m tags     = {
+          [32m+[0m "Env" = "dev"
+        }
+        # (2 unchanged attributes hidden)
+    }
+
+[0m[1mPlan:[0m 0 to add, 1 to change, 0 to destroy.

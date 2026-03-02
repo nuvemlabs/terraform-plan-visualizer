@@ -1,0 +1,27 @@
+Terraform will perform the following actions:
+
+  # azurerm_resource_group.rg will be created
+  + resource "azurerm_resource_group" "rg" {
+      + id       = (known after apply)
+      + location = "australiaeast"
+      + name     = "rg-test"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+Warning: Value for undeclared variable
+
+The root module does not declare a variable named "fa_settings" but a value
+was found in file "app.auto.tfvars". If you meant to use this value, add a
+"variable" block to the configuration.
+
+Warning: Argument is deprecated
+
+  with azurerm_storage_account.sa,
+  on main.tf line 50, in resource "azurerm_storage_account" "sa":
+  50:   enable_https_traffic_only = true
+
+`enable_https_traffic_only` has been deprecated and will be removed in v5.0
+of the AzureRM provider.
+
+Saved the plan to: terraform.tfplan

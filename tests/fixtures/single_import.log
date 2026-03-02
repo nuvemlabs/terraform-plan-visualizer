@@ -1,0 +1,12 @@
+Terraform will perform the following actions:
+
+  # azurerm_servicebus_topic.events will be updated in-place
+  # (imported from "/subscriptions/abc123/providers/Microsoft.ServiceBus/namespaces/my-sb/topics/events")
+  ~ resource "azurerm_servicebus_topic" "events" {
+        id                  = "/subscriptions/abc123/providers/Microsoft.ServiceBus/namespaces/my-sb/topics/events"
+      + max_size_in_megabytes = 1024
+        name                = "events"
+        # (5 unchanged attributes hidden)
+    }
+
+Plan: 0 to import, 0 to add, 1 to change, 0 to destroy.

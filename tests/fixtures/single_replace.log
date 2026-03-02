@@ -1,0 +1,14 @@
+azurerm_storage_account.replacement: Refreshing state... [id=/subscriptions/abc123/providers/Microsoft.Storage/storageAccounts/oldstorage]
+
+Terraform will perform the following actions:
+
+  # azurerm_storage_account.replacement must be replaced
+-/+ resource "azurerm_storage_account" "replacement" {
+      ~ account_tier             = "Standard" -> "Premium" # forces replacement
+      ~ id                       = "/subscriptions/abc123/providers/Microsoft.Storage/storageAccounts/oldstorage" -> (known after apply)
+      ~ name                     = "oldstorage" -> "newstorage" # forces replacement
+        tags                     = {}
+        # (10 unchanged attributes hidden)
+    }
+
+Plan: 1 to add, 0 to change, 1 to destroy.

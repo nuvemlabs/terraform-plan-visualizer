@@ -1,0 +1,4 @@
+module.cosmos[0].azurerm_cosmosdb_account.account: Refreshing state... [id=/subscriptions/abc123/providers/Microsoft.DocumentDB/databaseAccounts/my-cosmos]
+module.functions["api"].azurerm_windows_function_app.function-app[0]: Refreshing state... [id=/subscriptions/abc123/providers/Microsoft.Web/sites/my-func-app]
+
+No changes. Your infrastructure matches the configuration.

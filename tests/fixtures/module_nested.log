@@ -1,0 +1,11 @@
+Terraform will perform the following actions:
+
+  # module.platform.module.servicebus["primary"].azurerm_servicebus_namespace.ns will be updated in-place
+  ~ resource "azurerm_servicebus_namespace" "ns" {
+        id       = "/subscriptions/abc123/providers/Microsoft.ServiceBus/namespaces/my-sb"
+        name     = "my-sb"
+      ~ sku      = "Standard" -> "Premium"
+        # (5 unchanged attributes hidden)
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.

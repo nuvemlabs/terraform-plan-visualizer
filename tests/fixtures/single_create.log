@@ -1,0 +1,12 @@
+Refreshing state...
+
+Terraform will perform the following actions:
+
+  # azurerm_resource_group.example will be created
+  + resource "azurerm_resource_group" "example" {
+      + id       = (known after apply)
+      + location = "australiaeast"
+      + name     = "rg-test-example"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.

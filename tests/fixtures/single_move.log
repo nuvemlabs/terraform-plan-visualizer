@@ -1,0 +1,12 @@
+module.old_module.azurerm_role_assignment.rbac["topic_0"]: Refreshing state... [id=/subscriptions/abc123/providers/Microsoft.Authorization/roleAssignments/guid1]
+
+Terraform will perform the following actions:
+
+  # module.old_module.azurerm_role_assignment.rbac["topic_0"] has moved to azurerm_role_assignment.servicebus_rbac["topic_0"]
+    resource "azurerm_role_assignment" "servicebus_rbac" {
+        id                               = "/subscriptions/abc123/providers/Microsoft.Authorization/roleAssignments/guid1"
+        name                             = "guid1-guid2-guid3"
+        # (9 unchanged attributes hidden)
+    }
+
+Plan: 0 to add, 0 to change, 0 to destroy.

@@ -1,0 +1,21 @@
+Terraform will perform the following actions:
+
+  # azurerm_monitor_metric_alert.alerts["HighCPU"] will be created
+  + resource "azurerm_monitor_metric_alert" "alerts" {
+      + id          = (known after apply)
+      + name        = "HighCPU-alert"
+      + description = "CPU is too high"
+    }
+
+  # module.functions["api"].azurerm_windows_function_app.fa[0] will be updated in-place
+  ~ resource "azurerm_windows_function_app" "fa" {
+        id   = "/subscriptions/abc123/providers/Microsoft.Web/sites/my-func"
+        name = "my-func"
+        # (20 unchanged attributes hidden)
+
+      ~ site_config {
+            # (10 unchanged attributes hidden)
+        }
+    }
+
+Plan: 1 to add, 1 to change, 0 to destroy.

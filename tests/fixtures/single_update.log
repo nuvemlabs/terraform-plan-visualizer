@@ -1,0 +1,15 @@
+azurerm_storage_account.main: Refreshing state... [id=/subscriptions/abc123/providers/Microsoft.Storage/storageAccounts/mystorage]
+
+Terraform will perform the following actions:
+
+  # azurerm_storage_account.main will be updated in-place
+  ~ resource "azurerm_storage_account" "main" {
+        id                        = "/subscriptions/abc123/providers/Microsoft.Storage/storageAccounts/mystorage"
+        name                      = "mystorage"
+      ~ enable_https_traffic_only = true -> false
+      ~ min_tls_version           = "TLS1_2" -> "TLS1_0"
+        tags                      = {}
+        # (15 unchanged attributes hidden)
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.

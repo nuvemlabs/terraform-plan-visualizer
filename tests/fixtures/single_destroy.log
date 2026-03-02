@@ -1,0 +1,17 @@
+azurerm_monitor_metric_alert.alert["HighCPU"]: Refreshing state... [id=/subscriptions/abc123/providers/Microsoft.Insights/metricAlerts/HighCPU]
+
+Terraform will perform the following actions:
+
+  # azurerm_monitor_metric_alert.alert["HighCPU"] will be destroyed
+  # (because key ["HighCPU"] is not in for_each map)
+  - resource "azurerm_monitor_metric_alert" "alert" {
+      - description         = "CPU usage too high" -> null
+      - enabled             = true -> null
+      - id                  = "/subscriptions/abc123/providers/Microsoft.Insights/metricAlerts/HighCPU" -> null
+      - name                = "HighCPU" -> null
+      - resource_group_name = "rg-monitoring" -> null
+      - severity            = 2 -> null
+      - tags                = {} -> null
+    }
+
+Plan: 0 to add, 0 to change, 1 to destroy.

@@ -1,0 +1,20 @@
+Terraform will perform the following actions:
+
+  # module.functions["api"].data.azurerm_client_config.current will be read during apply
+  # (depends on a resource or a module with changes pending)
+ <= data "azurerm_client_config" "current" {
+      + client_id       = (known after apply)
+      + id              = (known after apply)
+      + object_id       = (known after apply)
+      + subscription_id = (known after apply)
+      + tenant_id       = (known after apply)
+    }
+
+  # azurerm_resource_group.example will be created
+  + resource "azurerm_resource_group" "example" {
+      + id       = (known after apply)
+      + location = "australiaeast"
+      + name     = "rg-example"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
