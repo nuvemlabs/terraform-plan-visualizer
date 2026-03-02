@@ -435,15 +435,15 @@ const PLAN_DATA = __PLAN_DATA__;
       p.addEventListener('click', function() {
         var f = p.getAttribute('data-filter');
         if (f === 'all') {
-          if (allFiltersActive()) {
-            // All selected + click All = clear all
-            presentActions.forEach(function(a) { activeFilters[a] = false; });
-          } else {
-            // Not all selected + click All = select all
-            presentActions.forEach(function(a) { activeFilters[a] = true; });
-          }
+          // Toggle all: if all active, deselect all; otherwise select all
+          var setTo = !allFiltersActive();
+          presentActions.forEach(function(a) { activeFilters[a] = setTo; });
         } else {
           activeFilters[f] = !activeFilters[f];
+        }
+        // If nothing selected, select all (prevent empty view)
+        if (noFiltersActive()) {
+          presentActions.forEach(function(a) { activeFilters[a] = true; });
         }
         render();
       });
