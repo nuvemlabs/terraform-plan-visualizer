@@ -166,14 +166,14 @@
   .tab-content.active { display: block; }
 
   /* Change lines */
-  .change-line { display: grid; grid-template-columns: 200px 1fr; gap: 8px; padding: 4px 0; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; border-bottom: 1px solid var(--border-color); align-items: baseline; }
+  .change-line { display: grid; grid-template-columns: minmax(140px, auto) 1fr; gap: 8px; padding: 4px 0; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; border-bottom: 1px solid var(--border-color); align-items: baseline; }
   .change-line:last-child { border-bottom: none; }
   .change-attr { color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 4px; }
   .change-forces { font-size: 9px; font-weight: 700; background: var(--color-replace); color: #fff; padding: 1px 4px; border-radius: 3px; }
-  .change-val-add { color: var(--color-create); }
-  .change-val-remove { color: var(--color-destroy); }
+  .change-val-add { color: var(--color-create); word-break: break-word; }
+  .change-val-remove { color: var(--color-destroy); word-break: break-word; }
+  .change-val-change { display: flex; flex-direction: column; gap: 2px; word-break: break-word; }
   .change-val-change .old { color: var(--color-destroy); text-decoration: line-through; opacity: 0.7; }
-  .change-val-change .arrow { color: var(--text-muted); margin: 0 6px; }
   .change-val-change .new { color: var(--color-create); }
 
   /* Diff block */
@@ -183,6 +183,7 @@
   .diff-block .diff-change { color: var(--color-update); }
   .diff-block .diff-comment { color: var(--text-muted); font-style: italic; }
   .diff-block .diff-forces { color: var(--color-replace); font-weight: 700; }
+  .diff-block .diff-ln { color: var(--text-muted); opacity: 0.5; user-select: none; }
 
   /* Warnings */
   .warnings-section { margin-top: 32px; }
@@ -281,14 +282,15 @@ const PLAN_DATA = __PLAN_DATA__;
 
   function highlightDiff(raw) {
     if (!raw) return '<span class="diff-comment">(no diff available)</span>';
-    return raw.split('\n').map(function(line) {
+    return raw.split('\n').map(function(line, i) {
+      var num = '<span class="diff-ln">' + String(i + 1).padStart(3) + '</span> ';
       var trimmed = line.replace(/^\s+/, '');
-      if (trimmed.indexOf('# forces replacement') !== -1) return '<span class="diff-forces">' + esc(line) + '</span>';
-      if (trimmed.indexOf('#') === 0) return '<span class="diff-comment">' + esc(line) + '</span>';
-      if (trimmed.indexOf('~') === 0) return '<span class="diff-change">' + esc(line) + '</span>';
-      if (trimmed.indexOf('+') === 0) return '<span class="diff-add">' + esc(line) + '</span>';
-      if (trimmed.indexOf('-') === 0) return '<span class="diff-del">' + esc(line) + '</span>';
-      return esc(line);
+      if (trimmed.indexOf('# forces replacement') !== -1) return num + '<span class="diff-forces">' + esc(line) + '</span>';
+      if (trimmed.indexOf('#') === 0) return num + '<span class="diff-comment">' + esc(line) + '</span>';
+      if (trimmed.indexOf('~') === 0) return num + '<span class="diff-change">' + esc(line) + '</span>';
+      if (trimmed.indexOf('+') === 0) return num + '<span class="diff-add">' + esc(line) + '</span>';
+      if (trimmed.indexOf('-') === 0) return num + '<span class="diff-del">' + esc(line) + '</span>';
+      return num + esc(line);
     }).join('\n');
   }
 
@@ -397,7 +399,7 @@ const PLAN_DATA = __PLAN_DATA__;
             h += '</span>';
             if (c.action === 'add') h += '<span class="change-val-add">+ ' + esc(c.new) + '</span>';
             else if (c.action === 'remove') h += '<span class="change-val-remove">\u2212 ' + esc(c.old) + '</span>';
-            else h += '<span class="change-val-change"><span class="old">' + esc(c.old) + '</span><span class="arrow">\u2192</span><span class="new">' + esc(c.new) + '</span></span>';
+            else h += '<span class="change-val-change"><span class="old">\u2212 ' + esc(c.old) + '</span><span class="new">+ ' + esc(c.new) + '</span></span>';
             h += '</div>';
           });
           h += '</div></div>';

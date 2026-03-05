@@ -53,6 +53,7 @@ SUMMARY_LINE_NUM=$(grep -n "^Plan:" "$CLEAN_FILE" | head -1 | cut -d: -f1)
 awk -v actions_start="$ACTIONS_LINE" -v summary_line="${SUMMARY_LINE_NUM:-$PLAN_LINE_COUNT}" '
 function json_escape(s) {
   gsub(/\\/, "\\\\", s)
+  gsub(/\n/, "\\n", s)
   gsub(/"/, "\\\"", s)
   gsub(/\t/, "\\t", s)
   gsub(/\r/, "", s)
@@ -171,7 +172,7 @@ NR >= summary_line { in_actions = 0 }
 # Track heredoc blocks to avoid premature block termination
 in_resource && in_heredoc {
   # Append to diff block
-  if (diff_block != "") diff_block = diff_block "\\n"
+  if (diff_block != "") diff_block = diff_block "\n"
   diff_block = diff_block $0
   # Check for heredoc end marker
   stripped = $0
@@ -184,7 +185,7 @@ in_resource && in_heredoc {
 
 # Detect heredoc start: <<-EOT or <<-EOF or <<EOT etc
 in_resource && /<<-?[A-Z]+/ {
-  if (diff_block != "") diff_block = diff_block "\\n"
+  if (diff_block != "") diff_block = diff_block "\n"
   diff_block = diff_block $0
   match($0, /<<-?([A-Z]+)/)
   hd = substr($0, RSTART, RLENGTH)
@@ -273,7 +274,7 @@ pending_header && /^[[:space:]]+[+~<-].*resource[[:space:]]+"/ {
   start_resource()
   in_resource = 1
   pending_header = 0
-  if (diff_block != "") diff_block = diff_block "\\n"
+  if (diff_block != "") diff_block = diff_block "\n"
   diff_block = diff_block $0
   next
 }
@@ -282,7 +283,7 @@ pending_header && /^    resource[[:space:]]+"/ {
   start_resource()
   in_resource = 1
   pending_header = 0
-  if (diff_block != "") diff_block = diff_block "\\n"
+  if (diff_block != "") diff_block = diff_block "\n"
   diff_block = diff_block $0
   next
 }
@@ -291,7 +292,7 @@ pending_header && /^[[:space:]]+<=/ {
   start_resource()
   in_resource = 1
   pending_header = 0
-  if (diff_block != "") diff_block = diff_block "\\n"
+  if (diff_block != "") diff_block = diff_block "\n"
   diff_block = diff_block $0
   next
 }
@@ -300,7 +301,7 @@ pending_header && /^[[:space:]]+-[[:space:]]+resource[[:space:]]+"/ {
   start_resource()
   in_resource = 1
   pending_header = 0
-  if (diff_block != "") diff_block = diff_block "\\n"
+  if (diff_block != "") diff_block = diff_block "\n"
   diff_block = diff_block $0
   next
 }
@@ -309,7 +310,7 @@ pending_header && /^-\/\+[[:space:]]+resource[[:space:]]+"/ {
   start_resource()
   in_resource = 1
   pending_header = 0
-  if (diff_block != "") diff_block = diff_block "\\n"
+  if (diff_block != "") diff_block = diff_block "\n"
   diff_block = diff_block $0
   next
 }
@@ -319,7 +320,7 @@ pending_header && /^-\/\+[[:space:]]+resource[[:space:]]+"/ {
 
 # End of resource block
 in_resource && /^    }[[:space:]]*$/ {
-  if (diff_block != "") diff_block = diff_block "\\n"
+  if (diff_block != "") diff_block = diff_block "\n"
   diff_block = diff_block $0
   printf "\n    ]"
   flush_resource()
@@ -332,7 +333,7 @@ in_resource && /^    }[[:space:]]*$/ {
 
 # Accumulate diff block
 {
-  if (diff_block != "") diff_block = diff_block "\\n"
+  if (diff_block != "") diff_block = diff_block "\n"
   diff_block = diff_block $0
 }
 
@@ -385,9 +386,7 @@ in_resource && /^    }[[:space:]]*$/ {
     gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", a)
 
     if (pending_action == "create" || pending_action == "import") {
-      if (a == "name" || a == "id" || a == "location" || a == "resource_group_name" || a == "description") {
-        emit_change(a, "", v, "add", 0)
-      }
+      emit_change(a, "", v, "add", 0)
     }
   }
 }
@@ -407,9 +406,7 @@ in_resource && /^    }[[:space:]]*$/ {
     gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", a)
 
     if (pending_action == "destroy") {
-      if (a == "name" || a == "id" || a == "description" || a == "resource_group_name") {
-        emit_change(a, v, "", "remove", 0)
-      }
+      emit_change(a, v, "", "remove", 0)
     }
   }
 }
