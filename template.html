@@ -175,6 +175,11 @@
   .change-val-change { display: flex; flex-direction: column; gap: 2px; word-break: break-word; }
   .change-val-change .old { color: var(--color-destroy); text-decoration: line-through; opacity: 0.7; }
   .change-val-change .new { color: var(--color-create); }
+  .change-val-multiline { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; line-height: 1.5; background: var(--bg-primary); padding: 8px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; overflow-x: auto; max-height: 300px; overflow-y: auto; }
+  .change-val-multiline .diff-add { color: var(--color-create); }
+  .change-val-multiline .diff-del { color: var(--color-destroy); }
+  .change-val-multiline .diff-change { color: var(--color-update); }
+  .change-val-multiline .diff-comment { color: var(--text-muted); font-style: italic; }
 
   /* Diff block */
   .diff-block { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; line-height: 1.5; background: var(--bg-primary); padding: 12px 16px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 500px; overflow-y: auto; }
@@ -399,7 +404,14 @@ const PLAN_DATA = __PLAN_DATA__;
             h += '</span>';
             if (c.action === 'add') h += '<span class="change-val-add">+ ' + esc(c.new) + '</span>';
             else if (c.action === 'remove') h += '<span class="change-val-remove">\u2212 ' + esc(c.old) + '</span>';
-            else h += '<span class="change-val-change"><span class="old">\u2212 ' + esc(c.old) + '</span><span class="new">+ ' + esc(c.new) + '</span></span>';
+            else {
+              var val = c.new || c.old || '';
+              if (val.indexOf('\n') !== -1) {
+                h += '<div class="change-val-multiline">' + highlightDiff(val) + '</div>';
+              } else {
+                h += '<span class="change-val-change"><span class="old">\u2212 ' + esc(c.old) + '</span><span class="new">+ ' + esc(c.new) + '</span></span>';
+              }
+            }
             h += '</div>';
           });
           h += '</div></div>';

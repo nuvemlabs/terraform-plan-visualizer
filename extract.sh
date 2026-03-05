@@ -162,6 +162,11 @@ BEGIN {
   pending_import_id = ""
   forces_replacement = 0
   diff_block = ""
+  in_multiline_change = 0
+  ml_attr = ""
+  ml_depth = 0
+  ml_content = ""
+  ml_forces = 0
   printf "["
 }
 
@@ -337,6 +342,21 @@ in_resource && /^    }[[:space:]]*$/ {
   diff_block = diff_block $0
 }
 
+# Multi-line change value accumulation
+in_multiline_change {
+  ml_content = ml_content "\n" $0
+  n = split($0, chars, "")
+  for (ci = 1; ci <= n; ci++) {
+    if (chars[ci] == "[" || chars[ci] == "{") ml_depth++
+    if (chars[ci] == "]" || chars[ci] == "}") ml_depth--
+  }
+  if (ml_depth <= 0) {
+    emit_change(ml_attr, "", ml_content, "change", ml_forces)
+    in_multiline_change = 0
+  }
+  next
+}
+
 # Change lines: ~ attr = old -> new
 /~[[:space:]]+[a-zA-Z_]/ {
   line = $0
@@ -367,6 +387,26 @@ in_resource && /^    }[[:space:]]*$/ {
     gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", ov)
     gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", nv)
     gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", a)
+
+    # Detect multi-line value (array or object)
+    if (nv == "[" || nv == "{" || ov == "[" || ov == "{") {
+      in_multiline_change = 1
+      ml_attr = a
+      ml_forces = fr
+      ml_depth = 0
+      ml_content = $0
+      sub(/.*=[[:space:]]*/, "", ml_content)
+      n2 = split(ml_content, chars2, "")
+      for (ci2 = 1; ci2 <= n2; ci2++) {
+        if (chars2[ci2] == "[" || chars2[ci2] == "{") ml_depth++
+        if (chars2[ci2] == "]" || chars2[ci2] == "}") ml_depth--
+      }
+      if (ml_depth <= 0) {
+        emit_change(a, "", ml_content, "change", fr)
+        in_multiline_change = 0
+      }
+      next
+    }
 
     emit_change(a, ov, nv, "change", fr)
   }
