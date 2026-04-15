@@ -52,6 +52,24 @@
     --color-read-bg: #e0f5f5;
     --color-import-bg: #f0e8fa;
   }
+  [data-theme="dim"] {
+    --bg-primary: #1E2130;
+    --bg-secondary: #272B3D;
+    --bg-tertiary: #313549;
+    --bg-hover: #3A3F55;
+    --text-primary: #D4D8E8;
+    --text-secondary: #8B92A8;
+    --text-muted: #636B82;
+    --border-color: #3A3F55;
+    --shadow: 0 4px 24px rgba(0,0,0,0.25);
+    --color-create-bg: #0d3410;
+    --color-update-bg: #002952;
+    --color-destroy-bg: #3a1012;
+    --color-replace-bg: #4a1500;
+    --color-move-bg: #2a2a2a;
+    --color-read-bg: #023234;
+    --color-import-bg: #241242;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
@@ -129,9 +147,10 @@
   .resource-row { border-bottom: 1px solid var(--border-color); transition: background 0.15s; cursor: pointer; }
   .resource-row:last-child { border-bottom: none; }
   .resource-row:hover { background: var(--bg-hover); }
-  .resource-row-header { display: grid; grid-template-columns: 90px 1fr 1fr auto; gap: 12px; padding: 12px 16px; align-items: center; }
+  .col-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+  .resource-row-header { display: grid; grid-template-columns: auto 1fr 1fr auto; gap: 12px; padding: 12px 16px; align-items: center; }
   @media (max-width: 700px) {
-    .resource-row-header { grid-template-columns: 80px 1fr; }
+    .resource-row-header { grid-template-columns: auto 1fr; }
     .resource-row-header .col-module, .resource-row-header .col-toggle { display: none; }
   }
   .action-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; width: fit-content; }
@@ -303,6 +322,12 @@ const PLAN_DATA = __PLAN_DATA__;
     var s = data.summary;
     var noChange = s.create === 0 && s.update === 0 && s.destroy === 0 && s.replace === 0 && s.import === 0;
     var filtered = getFiltered();
+    var filteredModuleMap = {};
+    filtered.forEach(function(r) {
+        var m = r.module || 'root';
+        if (!filteredModuleMap[m]) filteredModuleMap[m] = 0;
+        filteredModuleMap[m]++;
+    });
     var curTheme = document.documentElement.getAttribute('data-theme');
     var h = '';
 
@@ -313,6 +338,7 @@ const PLAN_DATA = __PLAN_DATA__;
     h += '<div class="header-meta">Source: ' + esc(data.metadata.source) + ' &middot; ' + esc(data.metadata.generated) + '</div></div></div>';
     h += '<div class="header-right"><div class="theme-switcher">';
     h += '<button class="theme-btn' + (curTheme==='dark'?' active':'') + '" data-theme="dark" onclick="window.__setTheme(\'dark\')">Dark</button>';
+    h += '<button class="theme-btn' + (curTheme==='dim'?' active':'') + '" data-theme="dim" onclick="window.__setTheme(\'dim\')">Dim</button>';
     h += '<button class="theme-btn' + (curTheme==='light'?' active':'') + '" data-theme="light" onclick="window.__setTheme(\'light\')">Light</button>';
     h += '</div></div></div>';
 
@@ -357,10 +383,12 @@ const PLAN_DATA = __PLAN_DATA__;
 
     // Sidebar
     h += '<div class="sidebar"><h3>Modules</h3>';
-    h += '<div class="module-item' + (!activeModule?' active':'') + '" data-module=""><span>All Modules</span><span class="module-count">' + data.resources.length + '</span></div>';
+    h += '<div class="module-item' + (!activeModule?' active':'') + '" data-module=""><span>All Modules</span><span class="module-count">' + filtered.length + '</span></div>';
     moduleNames.forEach(function(m) {
+      var cnt = filteredModuleMap[m] || 0;
+      if (cnt === 0 && activeModule !== m) return;
       var lbl = m === 'root' ? 'root' : m.replace(/^module\./, '');
-      h += '<div class="module-item' + (activeModule===m?' active':'') + '" data-module="' + esc(m) + '"><span title="' + esc(m) + '">' + esc(trunc(lbl,25)) + '</span><span class="module-count">' + moduleMap[m].length + '</span></div>';
+      h += '<div class="module-item' + (activeModule===m?' active':'') + '" data-module="' + esc(m) + '"><span title="' + esc(m) + '">' + esc(trunc(lbl,25)) + '</span><span class="module-count">' + cnt + '</span></div>';
     });
     h += '</div>';
 
@@ -372,8 +400,9 @@ const PLAN_DATA = __PLAN_DATA__;
       var isExp = !!expandedRows[rowId];
       h += '<div class="resource-row' + (isExp?' expanded':'') + '" data-row-id="' + esc(rowId) + '">';
       h += '<div class="resource-row-header">';
-      h += '<span class="action-badge ' + r.action + '">' + aIcon(r.action) + ' ' + r.action + '</span>';
+      h += '<div class="col-badges"><span class="action-badge ' + r.action + '">' + aIcon(r.action) + ' ' + r.action + '</span>';
       if (r.imported && r.action !== 'import') h += '<span class="action-badge import" style="margin-left:4px">\u2193 imported</span>';
+      h += '</div>';
       h += '<div class="col-resource"><span class="resource-type">' + esc(r.type||'') + '</span>';
       h += '<span class="resource-name">' + esc(r.name||'');
       if (r.forcesReplacement) h += '<span class="forces-badge">FORCES REPLACE</span>';
@@ -455,10 +484,6 @@ const PLAN_DATA = __PLAN_DATA__;
           presentActions.forEach(function(a) { activeFilters[a] = setTo; });
         } else {
           activeFilters[f] = !activeFilters[f];
-        }
-        // If nothing selected, select all (prevent empty view)
-        if (noFiltersActive()) {
-          presentActions.forEach(function(a) { activeFilters[a] = true; });
         }
         render();
       });
