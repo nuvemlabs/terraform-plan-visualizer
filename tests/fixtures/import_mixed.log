@@ -1,0 +1,35 @@
+Terraform will perform the following actions:
+
+  # azurerm_resource_group.imported will be imported
+    resource "azurerm_resource_group" "imported" {
+        id       = "/subscriptions/abc123/resourceGroups/rg-imported"
+        location = "australiaeast"
+        name     = "rg-imported"
+        tags     = {}
+    }
+
+  # azurerm_storage_account.updated will be updated in-place
+  # (imported from "/subscriptions/abc123/providers/Microsoft.Storage/storageAccounts/satest")
+  ~ resource "azurerm_storage_account" "updated" {
+        name                          = "satest"
+      ~ public_network_access_enabled = true -> false
+    }
+
+  # azurerm_key_vault.new will be created
+  + resource "azurerm_key_vault" "new" {
+      + id       = (known after apply)
+      + location = "australiaeast"
+      + name     = "kv-new"
+      + tags     = {
+          + "env" = "test"
+        }
+    }
+
+  # module.app.data.azurerm_client_config.current will be read during apply
+  # (depends on a resource or a module with changes pending)
+ <= data "azurerm_client_config" "current" {
+      + client_id       = (known after apply)
+      + tenant_id       = (known after apply)
+    }
+
+Plan: 1 to import, 1 to add, 1 to change, 0 to destroy.

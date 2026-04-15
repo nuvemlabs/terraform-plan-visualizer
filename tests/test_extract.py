@@ -254,7 +254,11 @@ class TestSingleMove(unittest.TestCase):
 
 
 class TestSingleImport(unittest.TestCase):
-    """Test plan with one imported resource."""
+    """Test plan with one imported resource (update-in-place with import annotation).
+
+    single_import.log is an 'updated in-place' with '(imported from ...)'.
+    The primary action is 'update', but it should also be flagged as imported.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -263,13 +267,22 @@ class TestSingleImport(unittest.TestCase):
     def test_valid_json(self):
         self.assertIsNotNone(self.data)
 
-    def test_resource_action_is_import(self):
-        self.assertEqual(self.data['resources'][0]['action'], 'import')
+    def test_resource_action_is_update(self):
+        self.assertEqual(self.data['resources'][0]['action'], 'update')
+
+    def test_resource_is_imported(self):
+        self.assertTrue(self.data['resources'][0].get('imported', False))
 
     def test_import_id_populated(self):
         r = self.data['resources'][0]
         self.assertIn('importId', r)
         self.assertIn('Microsoft.ServiceBus', r['importId'])
+
+    def test_summary_update_one(self):
+        self.assertEqual(self.data['summary']['update'], 1)
+
+    def test_summary_import_zero(self):
+        self.assertEqual(self.data['summary']['import'], 0)
 
     def test_total_equals_resource_count(self):
         self.assertEqual(self.data['summary']['total'], len(self.data['resources']))
@@ -292,6 +305,14 @@ class TestSingleRead(unittest.TestCase):
         r = find_resource(self.data, 'client_config')
         self.assertIsNotNone(r)
         self.assertEqual(r['action'], 'read')
+
+    def test_data_source_type_is_provider_type(self):
+        r = find_resource(self.data, 'client_config')
+        self.assertEqual(r['type'], 'azurerm_client_config')
+
+    def test_data_source_name_is_resource_name(self):
+        r = find_resource(self.data, 'client_config')
+        self.assertEqual(r['name'], 'current')
 
     def test_also_has_create_resource(self):
         r = find_resource(self.data, 'azurerm_resource_group')
@@ -528,8 +549,136 @@ class TestZeroCountRegression(unittest.TestCase):
         self.assertEqual(self.data['summary']['total'], 3)
 
 
+class TestPureImport(unittest.TestCase):
+    """Test plan with a pure import — no changes, just importing existing resource."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.rc, cls.data, cls.raw, cls.err = run_extract('pure_import.log')
+
+    def test_valid_json(self):
+        self.assertIsNotNone(self.data)
+
+    def test_resource_action_is_import(self):
+        self.assertEqual(self.data['resources'][0]['action'], 'import')
+
+    def test_no_unknown_actions(self):
+        for r in self.data['resources']:
+            self.assertNotEqual(r['action'], 'unknown', f"Resource {r['address']} has action 'unknown'")
+
+    def test_summary_import_one(self):
+        self.assertEqual(self.data['summary']['import'], 1)
+
+    def test_diff_block_present(self):
+        self.assertTrue(len(self.data['resources'][0]['diffBlock']) > 0)
+
+    def test_total_equals_resource_count(self):
+        self.assertEqual(self.data['summary']['total'], len(self.data['resources']))
+
+    def test_resource_is_imported(self):
+        self.assertTrue(self.data['resources'][0].get('imported', False))
+
+
+class TestImportMixed(unittest.TestCase):
+    """Test plan with mixed actions: pure import + update-with-import + create + read."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.rc, cls.data, cls.raw, cls.err = run_extract('import_mixed.log')
+
+    def test_valid_json(self):
+        self.assertIsNotNone(self.data)
+
+    def test_resource_count(self):
+        self.assertEqual(len(self.data['resources']), 4)
+
+    def test_no_unknown_actions(self):
+        for r in self.data['resources']:
+            self.assertNotEqual(r['action'], 'unknown', f"Resource {r['address']} has action 'unknown'")
+
+    def test_summary_counts_add_up(self):
+        s = self.data['summary']
+        individual = s['create'] + s['update'] + s['destroy'] + s['replace'] + s['move'] + s['read'] + s['import']
+        self.assertEqual(individual, s['total'], f"Sum of actions ({individual}) != total ({s['total']})")
+
+    def test_summary_import_one(self):
+        self.assertEqual(self.data['summary']['import'], 1)
+
+    def test_summary_update_one(self):
+        self.assertEqual(self.data['summary']['update'], 1)
+
+    def test_summary_create_one(self):
+        self.assertEqual(self.data['summary']['create'], 1)
+
+    def test_summary_read_one(self):
+        self.assertEqual(self.data['summary']['read'], 1)
+
+    def test_pure_import_action(self):
+        r = find_resource(self.data, 'imported')
+        self.assertIsNotNone(r, "Expected to find 'imported' resource")
+        self.assertEqual(r['action'], 'import')
+
+    def test_pure_import_is_imported(self):
+        r = find_resource(self.data, 'imported')
+        self.assertTrue(r.get('imported', False))
+
+    def test_update_with_import_keeps_update_action(self):
+        r = find_resource(self.data, 'updated')
+        self.assertIsNotNone(r, "Expected to find 'updated' resource")
+        self.assertEqual(r['action'], 'update')
+
+    def test_update_with_import_is_imported(self):
+        r = find_resource(self.data, 'updated')
+        self.assertTrue(r.get('imported', False))
+
+    def test_update_with_import_has_import_id(self):
+        r = find_resource(self.data, 'updated')
+        self.assertIn('importId', r)
+        self.assertIn('storageAccounts', r['importId'])
+
+    def test_data_source_type_not_data(self):
+        r = find_resource(self.data, 'client_config')
+        self.assertIsNotNone(r, "Expected to find 'client_config' resource")
+        self.assertEqual(r['type'], 'azurerm_client_config')
+
+    def test_data_source_name(self):
+        r = find_resource(self.data, 'client_config')
+        self.assertEqual(r['name'], 'current')
+
+
+class TestCreateMultiline(unittest.TestCase):
+    """Test that multi-line arrays and objects in create blocks are fully captured."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.rc, cls.data, cls.raw, cls.err = run_extract('create_multiline.log')
+
+    def test_valid_json(self):
+        self.assertIsNotNone(self.data)
+
+    def test_key_permissions_not_truncated(self):
+        r = self.data['resources'][0]
+        c = find_change(r, 'key_permissions')
+        self.assertIsNotNone(c, "Expected change for 'key_permissions'")
+        self.assertIn('Get', c['new'])
+        self.assertIn('WrapKey', c['new'])
+
+    def test_tags_not_truncated(self):
+        r = self.data['resources'][0]
+        c = find_change(r, 'tags')
+        self.assertIsNotNone(c, "Expected change for 'tags'")
+        self.assertIn('team-a', c['new'])
+
+    def test_single_line_value_still_works(self):
+        r = self.data['resources'][0]
+        c = find_change(r, 'tenant_id')
+        self.assertIsNotNone(c, "Expected change for 'tenant_id'")
+        self.assertIn('abc-123', c['new'])
+
+
 class TestTotalConsistency(unittest.TestCase):
-    """Verify summary.total matches len(resources) across all fixtures."""
+    """Verify summary.total matches len(resources) across all fixtures,
+    and that individual action counts add up to total."""
 
     def _check_fixture(self, fixture_name):
         rc, data, raw, err = run_extract(fixture_name)
@@ -539,6 +688,17 @@ class TestTotalConsistency(unittest.TestCase):
             data['summary']['total'],
             len(data['resources']),
             f"{fixture_name}: total ({data['summary']['total']}) != resources ({len(data['resources'])})"
+        )
+
+    def _check_summary_adds_up(self, fixture_name):
+        rc, data, raw, err = run_extract(fixture_name)
+        self.assertEqual(rc, 0, f"{fixture_name}: non-zero exit code")
+        self.assertIsNotNone(data, f"{fixture_name}: invalid JSON")
+        s = data['summary']
+        individual = s['create'] + s['update'] + s['destroy'] + s['replace'] + s['move'] + s['read'] + s['import']
+        self.assertEqual(
+            individual, s['total'],
+            f"{fixture_name}: sum of actions ({individual}) != total ({s['total']})"
         )
 
     def test_no_changes(self):
@@ -564,6 +724,48 @@ class TestTotalConsistency(unittest.TestCase):
 
     def test_zero_count_bug(self):
         self._check_fixture('zero_count_bug.log')
+
+    def test_pure_import(self):
+        self._check_fixture('pure_import.log')
+
+    def test_import_mixed(self):
+        self._check_fixture('import_mixed.log')
+
+    def test_create_multiline(self):
+        self._check_fixture('create_multiline.log')
+
+    def test_summary_adds_up_no_changes(self):
+        self._check_summary_adds_up('no_changes.log')
+
+    def test_summary_adds_up_single_create(self):
+        self._check_summary_adds_up('single_create.log')
+
+    def test_summary_adds_up_single_update(self):
+        self._check_summary_adds_up('single_update.log')
+
+    def test_summary_adds_up_single_destroy(self):
+        self._check_summary_adds_up('single_destroy.log')
+
+    def test_summary_adds_up_single_replace(self):
+        self._check_summary_adds_up('single_replace.log')
+
+    def test_summary_adds_up_single_move(self):
+        self._check_summary_adds_up('single_move.log')
+
+    def test_summary_adds_up_mixed_actions(self):
+        self._check_summary_adds_up('mixed_actions.log')
+
+    def test_summary_adds_up_zero_count_bug(self):
+        self._check_summary_adds_up('zero_count_bug.log')
+
+    def test_summary_adds_up_pure_import(self):
+        self._check_summary_adds_up('pure_import.log')
+
+    def test_summary_adds_up_import_mixed(self):
+        self._check_summary_adds_up('import_mixed.log')
+
+    def test_summary_adds_up_create_multiline(self):
+        self._check_summary_adds_up('create_multiline.log')
 
 
 if __name__ == '__main__':

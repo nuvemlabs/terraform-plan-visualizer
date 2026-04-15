@@ -1,0 +1,11 @@
+Terraform will perform the following actions:
+
+  # azurerm_resource_group.example will be imported
+    resource "azurerm_resource_group" "example" {
+        id       = "/subscriptions/abc123/resourceGroups/rg-example"
+        location = "australiaeast"
+        name     = "rg-example"
+        tags     = {}
+    }
+
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.

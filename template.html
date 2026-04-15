@@ -259,7 +259,7 @@ const PLAN_DATA = __PLAN_DATA__;
 
   // State
   var allActions = ['destroy','replace','update','create','import','move','read'];
-  var presentActions = allActions.filter(function(a) { return data.resources.some(function(r) { return r.action === a; }); });
+  var presentActions = allActions.filter(function(a) { return data.resources.some(function(r) { return r.action === a || (a === 'import' && r.imported); }); });
   var activeFilters = {};
   presentActions.forEach(function(a) { activeFilters[a] = true; });
   var activeModule = null;
@@ -271,7 +271,7 @@ const PLAN_DATA = __PLAN_DATA__;
 
   function getFiltered() {
     return data.resources.filter(function(r) {
-      if (!activeFilters[r.action]) return false;
+      if (!activeFilters[r.action] && !(r.imported && activeFilters['import'])) return false;
       if (activeModule && (r.module || 'root') !== activeModule) return false;
       if (searchQuery) {
         var q = searchQuery.toLowerCase();
@@ -283,7 +283,7 @@ const PLAN_DATA = __PLAN_DATA__;
 
   function esc(s) { return s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function trunc(s, n) { return !s || s.length <= n ? s : s.substring(0, n) + '...'; }
-  function aIcon(a) { return ({create:'+',update:'~',destroy:'\u2212',replace:'\u21c4',move:'\u2192',read:'\u2190',import:'\u2193'})[a] || '?'; }
+  function aIcon(a) { return ({create:'+',update:'~',destroy:'\u2212',replace:'\u21c4',move:'\u2192',read:'\u2190',import:'\u2193',total:'\u03A3'})[a] || '?'; }
 
   function highlightDiff(raw) {
     if (!raw) return '<span class="diff-comment">(no diff available)</span>';
@@ -373,6 +373,7 @@ const PLAN_DATA = __PLAN_DATA__;
       h += '<div class="resource-row' + (isExp?' expanded':'') + '" data-row-id="' + esc(rowId) + '">';
       h += '<div class="resource-row-header">';
       h += '<span class="action-badge ' + r.action + '">' + aIcon(r.action) + ' ' + r.action + '</span>';
+      if (r.imported && r.action !== 'import') h += '<span class="action-badge import" style="margin-left:4px">\u2193 imported</span>';
       h += '<div class="col-resource"><span class="resource-type">' + esc(r.type||'') + '</span>';
       h += '<span class="resource-name">' + esc(r.name||'');
       if (r.forcesReplacement) h += '<span class="forces-badge">FORCES REPLACE</span>';

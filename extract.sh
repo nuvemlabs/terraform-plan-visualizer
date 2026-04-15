@@ -40,12 +40,6 @@ fi
 REFRESH_COUNT=$(head -n "$ACTIONS_LINE" "$CLEAN_FILE" | grep -c "Refreshing state\.\.\." 2>/dev/null) || REFRESH_COUNT=0
 
 # --- Extract summary line ---
-SUMMARY_LINE=$(grep "^Plan:" "$CLEAN_FILE" | head -1)
-S_IMPORT=$(echo "$SUMMARY_LINE" | grep -oE '[0-9]+ to import' | grep -oE '[0-9]+' || echo "0")
-S_ADD=$(echo "$SUMMARY_LINE" | grep -oE '[0-9]+ to add' | grep -oE '[0-9]+' || echo "0")
-S_CHANGE=$(echo "$SUMMARY_LINE" | grep -oE '[0-9]+ to change' | grep -oE '[0-9]+' || echo "0")
-S_DESTROY=$(echo "$SUMMARY_LINE" | grep -oE '[0-9]+ to destroy' | grep -oE '[0-9]+' || echo "0")
-
 PLAN_LINE_COUNT=$(wc -l < "$CLEAN_FILE" | tr -d ' ')
 SUMMARY_LINE_NUM=$(grep -n "^Plan:" "$CLEAN_FILE" | head -1 | cut -d: -f1)
 
@@ -96,6 +90,11 @@ function start_resource() {
     res_part = rest
   }
 
+  # Strip data. prefix for data sources
+  if (res_part ~ /^data\./) {
+    sub(/^data\./, "", res_part)
+  }
+
   # Parse type.name from resource part
   rtype = res_part
   rname = res_part
@@ -131,6 +130,9 @@ function start_resource() {
     printf ",\n    \"importId\": \"%s\"", json_escape(pending_import_id)
   }
   printf ",\n    \"forcesReplacement\": %s", (forces_replacement ? "true" : "false")
+  if (pending_import_id != "" || pending_action == "import") {
+    printf ",\n    \"imported\": true"
+  }
   printf ",\n    \"changes\": ["
   change_count = 0
   diff_block = ""
@@ -167,6 +169,7 @@ BEGIN {
   ml_depth = 0
   ml_content = ""
   ml_forces = 0
+  in_multiline_add = 0
   printf "["
 }
 
@@ -244,6 +247,10 @@ in_resource && /<<-?[A-Z]+/ {
     pending_action = "read"
     match(header, /^[^ ]+/)
     pending_address = substr(header, RSTART, RLENGTH)
+  } else if (header ~ /will be imported/) {
+    pending_action = "import"
+    match(header, /^[^ ]+/)
+    pending_address = substr(header, RSTART, RLENGTH)
   } else {
     match(header, /^[^ ]+/)
     pending_address = substr(header, RSTART, RLENGTH)
@@ -263,7 +270,6 @@ pending_header && /^  # \(/ {
     if (RSTART > 0) {
       pending_import_id = substr(line, RSTART+1, RLENGTH-2)
     }
-    if (pending_action == "update") pending_action = "import"
   }
   if (line ~ /moved from/) {
     match(line, /moved from [^ )]+/)
@@ -412,6 +418,23 @@ in_multiline_change {
   }
 }
 
+# Multi-line add value accumulation
+in_multiline_add {
+  ml_add_content = ml_add_content "\n" $0
+  n = split($0, chars, "")
+  for (ci = 1; ci <= n; ci++) {
+    if (chars[ci] == "[" || chars[ci] == "{") ml_add_depth++
+    if (chars[ci] == "]" || chars[ci] == "}") ml_add_depth--
+  }
+  if (ml_add_depth <= 0) {
+    if (pending_action == "create" || pending_action == "import") {
+      emit_change(ml_add_attr, "", ml_add_content, "add", 0)
+    }
+    in_multiline_add = 0
+  }
+  next
+}
+
 # Add lines for create/import: + attr = value
 /^[[:space:]]+\+[[:space:]]+[a-zA-Z_]/ && !/resource[[:space:]]+"/ && !/data[[:space:]]+"/ {
   line = $0
@@ -424,6 +447,27 @@ in_multiline_change {
     sub(/.*=[[:space:]]*/, "", v)
     gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", v)
     gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", a)
+
+    # Detect multi-line value (array or object)
+    if (v == "[" || v == "{") {
+      in_multiline_add = 1
+      ml_add_attr = a
+      ml_add_depth = 0
+      ml_add_content = $0
+      sub(/.*=[[:space:]]*/, "", ml_add_content)
+      n3 = split(ml_add_content, chars3, "")
+      for (ci3 = 1; ci3 <= n3; ci3++) {
+        if (chars3[ci3] == "[" || chars3[ci3] == "{") ml_add_depth++
+        if (chars3[ci3] == "]" || chars3[ci3] == "}") ml_add_depth--
+      }
+      if (ml_add_depth <= 0) {
+        if (pending_action == "create" || pending_action == "import") {
+          emit_change(a, "", ml_add_content, "add", 0)
+        }
+        in_multiline_add = 0
+      }
+      next
+    }
 
     if (pending_action == "create" || pending_action == "import") {
       emit_change(a, "", v, "add", 0)
@@ -496,9 +540,13 @@ END {
 ' "$CLEAN_FILE" > "$WARNINGS_FILE"
 
 # === Count action types from extracted resources ===
+S_CREATE=$(grep -c '"action": "create"' "$RESOURCES_FILE" 2>/dev/null) || S_CREATE=0
+S_UPDATE=$(grep -c '"action": "update"' "$RESOURCES_FILE" 2>/dev/null) || S_UPDATE=0
+S_DESTROY=$(grep -c '"action": "destroy"' "$RESOURCES_FILE" 2>/dev/null) || S_DESTROY=0
+S_REPLACE=$(grep -c '"action": "replace"' "$RESOURCES_FILE" 2>/dev/null) || S_REPLACE=0
+S_IMPORT=$(grep -c '"action": "import"' "$RESOURCES_FILE" 2>/dev/null) || S_IMPORT=0
 S_MOVE=$(grep -c '"action": "move"' "$RESOURCES_FILE" 2>/dev/null) || S_MOVE=0
 S_READ=$(grep -c '"action": "read"' "$RESOURCES_FILE" 2>/dev/null) || S_READ=0
-S_REPLACE=$(grep -c '"action": "replace"' "$RESOURCES_FILE" 2>/dev/null) || S_REPLACE=0
 S_RESOURCE_COUNT=$(grep -c '"address":' "$RESOURCES_FILE" 2>/dev/null) || S_RESOURCE_COUNT=0
 S_TOTAL=$S_RESOURCE_COUNT
 
@@ -511,8 +559,8 @@ cat <<ENDJSON
     "terraform_version": ""
   },
   "summary": {
-    "create": $S_ADD,
-    "update": $S_CHANGE,
+    "create": $S_CREATE,
+    "update": $S_UPDATE,
     "destroy": $S_DESTROY,
     "replace": $S_REPLACE,
     "move": $S_MOVE,

@@ -1,0 +1,20 @@
+Terraform will perform the following actions:
+
+  # azurerm_key_vault_access_policy.example will be created
+  + resource "azurerm_key_vault_access_policy" "example" {
+      + key_permissions = [
+          + "Get",
+          + "UnwrapKey",
+          + "WrapKey",
+        ]
+      + secret_permissions = [
+          + "Get",
+        ]
+      + tags              = {
+          + "env"   = "test"
+          + "owner" = "team-a"
+        }
+      + tenant_id         = "abc-123"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
